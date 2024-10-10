@@ -8,7 +8,7 @@ import { AuthRequest } from "../middleware/authenticate";
 //import userModel from "../user/userModel";
 
 const createBook = async (req: Request, res: Response, next: NextFunction) => {
-  const { title, genre } = req.body;
+  const { title, genre, description } = req.body;
 
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   // 'application/pdf'
@@ -47,10 +47,11 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
 
     const newBook = await bookModel.create({
       title,
+      description,
+      genre,
       author: _req.userId,
       coverImage: uploadResult.secure_url,
       file: bookFileUploadResult.secure_url,
-      genre,
     });
 
     // Delete temp.files
@@ -67,7 +68,7 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
 
 //controller for UpdateBook
 const updateBook = async (req: Request, res: Response, next: NextFunction) => {
-  const { title, genre } = req.body;
+  const { title, description, genre } = req.body;
   const bookId = req.params.bookId;
   const book = await bookModel.findOne({ _id: bookId });
 
@@ -140,6 +141,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
     },
     {
       title: title,
+      description: description,
       genre: genre,
       coverImage: completeCoverImage ? completeCoverImage : book.coverImage,
       file: completeFileName ? completeFileName : book.file,
@@ -154,7 +156,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
 const listBook = async (req: Request, res: Response, next: NextFunction) => {
   try {
     //in production we do Pagination
-    const book = await bookModel.find();
+    const book = await bookModel.find().populate("author", "name");
     res.json(book);
   } catch (err) {
     console.log(err);
@@ -168,7 +170,7 @@ const singleBook = async (req: Request, res: Response, next: NextFunction) => {
   const bookId = req.params.bookId;
   try {
     // Use findById instead of find to fetch a single book
-    const book = await bookModel.findOne({_id : bookId}); 
+    const book = await bookModel.findOne({_id : bookId}).populate("author", "name"); 
     if (!book) {
       return next(createHttpError(404, "Book Not Found"));
     }
